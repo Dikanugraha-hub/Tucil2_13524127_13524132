@@ -5,6 +5,8 @@
 #include <string>
 #include <mutex>
 
+using namespace std;
+
 struct Vertex {
     float x, y, z;
 };
@@ -19,20 +21,20 @@ struct MyBoundingBox {
 };
 
 struct VoxelizationResult {
-    std::vector<Vertex> originalVertices;
-    std::vector<Face> originalFaces;
-    std::vector<Vertex> voxelVertices;
-    std::vector<Face> voxelFaces;
+    vector<Vertex> originalVertices;
+    vector<Face> originalFaces;
+    vector<Vertex> voxelVertices;
+    vector<Face> voxelFaces;
     MyBoundingBox rootBox;
-    std::string outputPath;
+    string outputPath;
     int totalVoxels = 0;
     double elapsedSeconds = 0.0;
 };
 
 struct OctreeStats {
-    std::vector<int> nodesCreatedPerDepth;
-    std::vector<int> nodesPrunedPerDepth;
-    std::mutex mtx;
+    vector<int> nodesCreatedPerDepth;
+    vector<int> nodesPrunedPerDepth;
+    mutex mtx;
 
     void init(int maxDepth) {
         nodesCreatedPerDepth.assign(maxDepth + 1, 0);
