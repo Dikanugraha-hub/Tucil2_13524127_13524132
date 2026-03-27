@@ -29,6 +29,7 @@ struct VoxelizationResult {
     string outputPath;
     int totalVoxels = 0;
     double elapsedSeconds = 0.0;
+    bool cancelled = false;
 };
 
 struct OctreeStats {
