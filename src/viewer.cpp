@@ -16,7 +16,7 @@
 namespace {
 
 const Font* gUiFont = nullptr;
-float gUiScale = 1.35f;
+float gUiScale = 1.18f;
 
 Vector3 toVec3(const Vertex& v) {
     return {v.x, v.y, v.z};
@@ -442,6 +442,11 @@ string compactStats(const vector<string>& lines, size_t maxItems = 5) {
     return out;
 }
 
+string normalizePathForDisplay(string path) {
+    std::replace(path.begin(), path.end(), '\\', '/');
+    return path;
+}
+
 }
 
 void runViewer(const VoxelizationResult& result, const ViewerConfig& config) {
@@ -860,8 +865,6 @@ void runVoxelizerGui(
 
         BeginDrawing();
         ClearBackground(Color{205, 210, 217, 255});
-        DrawRectangleRec(panelRect, Color{233, 235, 238, 255});
-        DrawRectangleLinesEx(panelRect, 1.0f, Color{168, 172, 180, 255});
         DrawRectangleRec(viewportRect, Color{49, 55, 68, 255});
         DrawRectangleLinesEx(viewportRect, 1.0f, Color{87, 94, 108, 255});
 
@@ -869,6 +872,12 @@ void runVoxelizerGui(
             Vector3 lightPos = {target.x + sceneSize * 2.0f, target.y + sceneSize * 2.0f, target.z + sceneSize * 1.3f};
             SetShaderValue(shader, lightPosLoc, &lightPos.x, SHADER_UNIFORM_VEC3);
             SetShaderValue(shader, viewPosLoc, &camera.position.x, SHADER_UNIFORM_VEC3);
+            BeginScissorMode(
+                static_cast<int>(viewportRect.x),
+                static_cast<int>(viewportRect.y),
+                static_cast<int>(viewportRect.width),
+                static_cast<int>(viewportRect.height)
+            );
             BeginMode3D(camera);
             Vector3 modelPosition{0.0f, 0.0f, 0.0f};
             DrawModel(model, modelPosition, 1.0f, WHITE);
@@ -884,15 +893,40 @@ void runVoxelizerGui(
             };
             DrawBoundingBox(rootBounds, GRAY);
             EndMode3D();
+            EndScissorMode();
         } else {
             drawTextWithCurrentFont("Belum ada model aktif.", viewportRect.x + 22, viewportRect.y + 22, 38, Color{200, 204, 214, 255});
             drawTextWithCurrentFont("Pilih file OBJ di list kiri untuk langsung memuat.", viewportRect.x + 22, viewportRect.y + 70, 27, Color{170, 174, 184, 255});
         }
 
+        if (hasVoxel) {
+            Rectangle outputRect{
+                viewportRect.x + 16.0f,
+                viewportRect.y + 16.0f,
+                viewportRect.width - 32.0f,
+                78.0f
+            };
+            DrawRectangleRec(outputRect, Fade(BLACK, 0.50f));
+            DrawRectangleLinesEx(outputRect, 1.0f, Color{111, 121, 142, 255});
+            const string outputText = "Output Path: " + normalizePathForDisplay(currentVoxel.outputPath);
+            drawWrappedTextWithCurrentFont(
+                outputText,
+                outputRect.x + 10.0f,
+                outputRect.y + 10.0f,
+                outputRect.width - 20.0f,
+                18.0f,
+                0.15f,
+                Color{222, 228, 240, 255}
+            );
+        }
+
+        DrawRectangleRec(panelRect, Color{233, 235, 238, 255});
+        DrawRectangleLinesEx(panelRect, 1.0f, Color{168, 172, 180, 255});
+
         int px = static_cast<int>(panelRect.x) + 10;
         int py = static_cast<int>(panelRect.y) + 10;
-        drawTextWithCurrentFont("Voxelizer ASICK", static_cast<float>(px), static_cast<float>(py), 34, Color{32, 34, 41, 255});
-        py += 46;
+        drawTextWithCurrentFont("Voxelizer ASICK", static_cast<float>(px), static_cast<float>(py), 30, Color{32, 34, 41, 255});
+        py += 40;
 
         if (drawButton(Rectangle{static_cast<float>(px), static_cast<float>(py), panelRect.width - 20.0f, 48.0f}, "Refresh List", !isPreviewLoading && !isVoxelLoading)) {
             auto refreshed = collectObjCandidates(initialPath);
@@ -911,7 +945,7 @@ void runVoxelizerGui(
                 statusText = "List file diperbarui.";
             }
         }
-        py += 58;
+        py += 50;
 
         if (drawButton(Rectangle{static_cast<float>(px), static_cast<float>(py), panelRect.width - 20.0f, 48.0f},
                 smooth ? "Mode Tampilan: Smooth" : "Mode Tampilan: Flat",
@@ -919,21 +953,21 @@ void runVoxelizerGui(
             smooth = !smooth;
             activateCurrentPreview();
         }
-        py += 62;
+        py += 54;
 
-        const int depthPanelHeight = isVoxelLoading ? 182 : 136;
+        const int depthPanelHeight = isVoxelLoading ? 162 : 122;
         DrawRectangle(px, py, static_cast<int>(panelRect.width - 20.0f), depthPanelHeight, Color{226, 229, 234, 255});
         DrawRectangleLines(px, py, static_cast<int>(panelRect.width - 20.0f), depthPanelHeight, Color{190, 194, 202, 255});
-        drawTextWithCurrentFont("Pengaturan Depth", static_cast<float>(px + 10), static_cast<float>(py + 10), 26, Color{47, 50, 56, 255});
-        drawTextWithCurrentFont(TextFormat("Depth saat ini: %d", depth), static_cast<float>(px + 10), static_cast<float>(py + 46), 23, Color{47, 50, 56, 255});
-        if (drawButton(Rectangle{static_cast<float>(px + 10), static_cast<float>(py + 78), 48.0f, 38.0f}, "-", !isVoxelLoading && depth > 0)) depth--;
-        if (drawButton(Rectangle{static_cast<float>(px + 64), static_cast<float>(py + 78), 48.0f, 38.0f}, "+", !isVoxelLoading && depth < 10)) depth++;
+        drawTextWithCurrentFont("Pengaturan Depth", static_cast<float>(px + 10), static_cast<float>(py + 8), 23, Color{47, 50, 56, 255});
+        drawTextWithCurrentFont(TextFormat("Depth saat ini: %d", depth), static_cast<float>(px + 10), static_cast<float>(py + 40), 20, Color{47, 50, 56, 255});
+        if (drawButton(Rectangle{static_cast<float>(px + 10), static_cast<float>(py + 68), 46.0f, 36.0f}, "-", !isVoxelLoading && depth > 0)) depth--;
+        if (drawButton(Rectangle{static_cast<float>(px + 60), static_cast<float>(py + 68), 46.0f, 36.0f}, "+", !isVoxelLoading && depth < 10)) depth++;
         if (drawButton(
                 Rectangle{
-                    static_cast<float>(px + 118),
-                    static_cast<float>(py + 78),
-                    panelRect.width - 20.0f - 118.0f - 10.0f,
-                    38.0f
+                    static_cast<float>(px + 112),
+                    static_cast<float>(py + 68),
+                    panelRect.width - 20.0f - 112.0f - 10.0f,
+                    36.0f
                 },
                 "Terapkan Depth",
                 !isPreviewLoading && !isVoxelLoading && hasOriginal
@@ -955,9 +989,9 @@ void runVoxelizerGui(
             if (drawButton(
                     Rectangle{
                         static_cast<float>(px + 10),
-                        static_cast<float>(py + 126),
+                        static_cast<float>(py + 112),
                         panelRect.width - 40.0f,
-                        42.0f
+                        36.0f
                     },
                     cancelUiRequested ? "Membatalkan..." : "Cancel Voxel",
                     !cancelUiRequested
@@ -970,29 +1004,37 @@ void runVoxelizerGui(
         }
         py += depthPanelHeight + 12;
 
-        drawTextWithCurrentFont("Pilih File OBJ:", static_cast<float>(px), static_cast<float>(py), 28, Color{47, 50, 56, 255});
-        py += 40;
-        const float listFontSize = 20.0f;
+        drawTextWithCurrentFont("Pilih File OBJ:", static_cast<float>(px), static_cast<float>(py), 23, Color{47, 50, 56, 255});
+        py += 32;
+        const float listFontSize = 17.0f;
         const float listScaledFont = listFontSize * gUiScale;
-        const int rowHeight = std::max(44, static_cast<int>(listScaledFont + 14.0f));
-        const int visibleCount = 7;
+        const int rowHeight = std::max(34, static_cast<int>(listScaledFont + 10.0f));
+        const int visibleCount = 5;
         const int listHeight = rowHeight * visibleCount + 8;
+        const float scrollBarWidth = 24.0f;
         const Rectangle listRect{static_cast<float>(px), static_cast<float>(py), panelRect.width - 20.0f, static_cast<float>(listHeight)};
         DrawRectangleRec(listRect, Color{215, 218, 223, 255});
         DrawRectangleLinesEx(listRect, 1.0f, Color{181, 185, 194, 255});
-        if (CheckCollisionPointRec(GetMousePosition(), listRect)) {
+        const Rectangle rowArea{
+            listRect.x + 2.0f,
+            listRect.y + 2.0f,
+            listRect.width - scrollBarWidth - 6.0f,
+            listRect.height - 4.0f
+        };
+        if (CheckCollisionPointRec(GetMousePosition(), rowArea)) {
             float wheel = GetMouseWheelMove();
             if (wheel > 0.0f) listScrollOffset--;
             if (wheel < 0.0f) listScrollOffset++;
         }
-        listScrollOffset = std::max(0, std::min(listScrollOffset, std::max(0, static_cast<int>(objList.size()) - visibleCount)));
+        const int maxScrollOffset = std::max(0, static_cast<int>(objList.size()) - visibleCount);
+        listScrollOffset = std::max(0, std::min(listScrollOffset, maxScrollOffset));
         int maxRows = std::min(visibleCount, static_cast<int>(objList.size()) - listScrollOffset);
         for (int i = 0; i < maxRows; ++i) {
             int idx = listScrollOffset + i;
             Rectangle row{
-                listRect.x + 2.0f,
+                rowArea.x,
                 listRect.y + 2.0f + static_cast<float>(i * rowHeight),
-                listRect.width - 4.0f,
+                rowArea.width,
                 static_cast<float>(rowHeight - 2)
             };
             bool selected = (idx == selectedIndex);
@@ -1018,6 +1060,61 @@ void runVoxelizerGui(
                 startOriginalPreviewLoad(selectedIndex);
             }
         }
+
+        const float arrowButtonHeight = 28.0f;
+        Rectangle scrollTrack{
+            listRect.x + listRect.width - scrollBarWidth - 2.0f,
+            listRect.y + 2.0f,
+            scrollBarWidth,
+            listRect.height - 4.0f
+        };
+        DrawRectangleRec(scrollTrack, Color{198, 203, 213, 255});
+        DrawRectangleLinesEx(scrollTrack, 1.0f, Color{170, 176, 188, 255});
+
+        Rectangle upButton{
+            scrollTrack.x + 1.0f,
+            scrollTrack.y + 1.0f,
+            scrollTrack.width - 2.0f,
+            arrowButtonHeight
+        };
+        Rectangle downButton{
+            scrollTrack.x + 1.0f,
+            scrollTrack.y + scrollTrack.height - arrowButtonHeight - 1.0f,
+            scrollTrack.width - 2.0f,
+            arrowButtonHeight
+        };
+
+        const bool scrollEnabled = (maxScrollOffset > 0) && !isPreviewLoading && !isVoxelLoading;
+        if (drawButton(upButton, "^", scrollEnabled)) {
+            listScrollOffset = std::max(0, listScrollOffset - 1);
+        }
+        if (drawButton(downButton, "v", scrollEnabled)) {
+            listScrollOffset = std::min(maxScrollOffset, listScrollOffset + 1);
+        }
+
+        Rectangle thumbTrack{
+            scrollTrack.x + 3.0f,
+            upButton.y + upButton.height + 3.0f,
+            scrollTrack.width - 6.0f,
+            downButton.y - (upButton.y + upButton.height) - 6.0f
+        };
+        DrawRectangleRec(thumbTrack, Color{188, 193, 204, 255});
+        if (maxScrollOffset > 0) {
+            float thumbHeight = std::max(20.0f, thumbTrack.height * (static_cast<float>(visibleCount) / static_cast<float>(objList.size())));
+            float thumbTravel = std::max(1.0f, thumbTrack.height - thumbHeight);
+            float thumbY = thumbTrack.y + (static_cast<float>(listScrollOffset) / static_cast<float>(maxScrollOffset)) * thumbTravel;
+            Rectangle thumb{thumbTrack.x + 1.0f, thumbY, thumbTrack.width - 2.0f, thumbHeight};
+            DrawRectangleRec(thumb, Color{112, 129, 166, 255});
+            DrawRectangleLinesEx(thumb, 1.0f, Color{86, 99, 127, 255});
+        } else {
+            Rectangle thumb{
+                thumbTrack.x + 1.0f,
+                thumbTrack.y + 1.0f,
+                thumbTrack.width - 2.0f,
+                thumbTrack.height - 2.0f
+            };
+            DrawRectangleRec(thumb, Color{158, 165, 178, 255});
+        }
         py += listHeight + 12;
 
         float halfButtonW = (panelRect.width - 20.0f - 8.0f) * 0.5f;
@@ -1034,13 +1131,13 @@ void runVoxelizerGui(
                 statusText = "Belum ada hasil voxel. Klik Terapkan Depth terlebih dulu.";
             }
         }
-        py += 52;
+        py += 48;
 
-        const int infoFont = 22;
+        const int infoFont = 18;
         drawTextWithCurrentFont(TextFormat("Depth Octree: %d", hasVoxel ? voxelDepthUsed : depth), static_cast<float>(px), static_cast<float>(py), static_cast<float>(infoFont), Color{47, 50, 56, 255});
-        py += 24;
+        py += 20;
         drawTextWithCurrentFont(TextFormat("Model aktif: %s", hasModel ? (previewOriginal ? "Original" : "Voxel") : "-"), static_cast<float>(px), static_cast<float>(py), static_cast<float>(infoFont), Color{47, 50, 56, 255});
-        py += 24;
+        py += 20;
 
         const float textBlockWidth = panelRect.width - 28.0f;
         if (isPreviewLoading || isVoxelLoading) {
@@ -1060,52 +1157,43 @@ void runVoxelizerGui(
                 Color{47, 50, 56, 255}
             ));
         }
-        py += 26;
+        const int statusBottomSpacing = (!isPreviewLoading && !isVoxelLoading && showStatus) ? 6 : 16;
+        py += statusBottomSpacing;
 
         if (hasVoxel) {
             drawTextWithCurrentFont(TextFormat("Banyak voxel: %d", currentVoxel.totalVoxels), static_cast<float>(px), static_cast<float>(py), static_cast<float>(infoFont), Color{47, 50, 56, 255});
-            py += 22;
+            py += 18;
             drawTextWithCurrentFont(TextFormat("Banyak vertex: %d", static_cast<int>(currentVoxel.voxelVertices.size())), static_cast<float>(px), static_cast<float>(py), static_cast<float>(infoFont), Color{47, 50, 56, 255});
-            py += 22;
+            py += 18;
             drawTextWithCurrentFont(TextFormat("Banyak faces: %d", static_cast<int>(currentVoxel.voxelFaces.size())), static_cast<float>(px), static_cast<float>(py), static_cast<float>(infoFont), Color{47, 50, 56, 255});
-            py += 22;
+            py += 18;
             drawTextWithCurrentFont(TextFormat("Waktu proses: %.3f detik", currentVoxel.elapsedSeconds), static_cast<float>(px), static_cast<float>(py), static_cast<float>(infoFont), Color{47, 50, 56, 255});
-            py += 22;
-            py += static_cast<int>(drawWrappedTextWithCurrentFont(
-                TextFormat("Path output: %s", currentVoxel.outputPath.c_str()),
-                static_cast<float>(px),
-                static_cast<float>(py),
-                textBlockWidth,
-                19.0f,
-                0.12f,
-                Color{47, 50, 56, 255}
-            ));
-            py += 8;
+            py += 18;
             py += static_cast<int>(drawWrappedTextWithCurrentFont(
                 TextFormat("Node terbentuk: %s", compactStats(createdStatsLines, 5).c_str()),
                 static_cast<float>(px),
                 static_cast<float>(py),
                 textBlockWidth,
-                19.0f,
+                17.0f,
                 0.12f,
                 Color{47, 50, 56, 255}
             ));
-            py += 6;
+            py += 4;
             py += static_cast<int>(drawWrappedTextWithCurrentFont(
                 TextFormat("Node tidak ditelusuri: %s", compactStats(prunedStatsLines, 5).c_str()),
                 static_cast<float>(px),
                 static_cast<float>(py),
                 textBlockWidth,
-                19.0f,
+                17.0f,
                 0.12f,
                 Color{47, 50, 56, 255}
             ));
-            py += 6;
+            py += 4;
         }
 
-        drawTextWithCurrentFont("Hint: orbit drag LMB/RMB, zoom scroll/Q/E", static_cast<float>(px), static_cast<float>(py), 19, Color{78, 82, 90, 255});
-        py += 18;
-        drawTextWithCurrentFont("Arrow: orbit | F11: fullscreen | R: reset", static_cast<float>(px), static_cast<float>(py), 19, Color{78, 82, 90, 255});
+        drawTextWithCurrentFont("Hint: orbit drag LMB/RMB, zoom scroll/Q/E", static_cast<float>(px), static_cast<float>(py), 16, Color{78, 82, 90, 255});
+        py += 15;
+        drawTextWithCurrentFont("Arrow: orbit | F11: fullscreen | R: reset", static_cast<float>(px), static_cast<float>(py), 16, Color{78, 82, 90, 255});
 
         if (hasVoxel) {
             DrawText(
