@@ -1,0 +1,23 @@
+# Test Case: File OBJ Rusak Total (Menghasilkan 0 Voxel)
+
+# 1. Baris vertex tidak lengkap (kurang sumbu Z)
+v 1.0000 2.0000
+v -5.500 3.2000
+
+# 2. Baris vertex mengandung tipe data yang salah (huruf)
+v 4.0000 x 6.0000
+v 7.0000 8.0000 sembilan
+
+# 3. Baris face tidak lengkap (hanya 1 atau 2 indeks)
+f 1
+f 1 2
+
+# 4. Baris face mengandung tipe data yang salah (huruf)
+f a b c
+f 1 dua 3
+
+# 5. Format lain yang pasti diabaikan program
+vt 0.500 0.500
+vn 0.000 1.000 0.000
+usemtl Material_Kosong
+s off
