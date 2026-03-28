@@ -1,6 +1,6 @@
 # Tugas Kecil 2 IF2211 Strategi Algoritma
 
-Voxelisasi mesh 3D `.obj` menggunakan pendekatan **Octree (divide and conquer)** dengan GUI berbasis **Raylib**.
+Voxelisasi mesh 3D `.obj` menggunakan pendekatan **Octree (divide and conquer)** dengan GUI.
 
 ## Anggota Kelompok
 
